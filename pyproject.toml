@@ -1,0 +1,41 @@
+[project]
+name = "autobilling"
+version = "0.1.0"
+description = "Automated utility billing system for landlords"
+authors = [
+    {name = "AutoBilling", email = "admin@autobilling.com"}
+]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "pandas>=2.1.4",
+    "openpyxl>=3.1.2",
+    "selenium>=4.16.0",
+    "beautifulsoup4>=4.12.2",
+    "requests>=2.31.0",
+    "webdriver-manager>=4.0.1",
+    "lxml>=4.9.3",
+    "python-dotenv>=1.0.0",
+    "google-api-python-client>=2.70.0",
+    "google-auth-httplib2>=0.1.0",
+    "google-auth-oauthlib>=0.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"] 

@@ -1,0 +1,286 @@
+version: "1.0.0"
+created_date: "2024-01-15"
+description: "Vision analysis prompts for AutoBilling system"
+
+prompts:
+  page_analysis:
+    version: "3.0"
+    description: "Simple page analysis - look for current bill with recent dates"
+    prompt: |
+      You are analyzing a utility billing webpage. Look at the screenshot and HTML content.
+      
+      **SIMPLE ANALYSIS:**
+      
+      1. **Look for CURRENT BILL information:**
+         - "Current bill", "Latest bill", "Amount due", "Your bill"
+         - Dollar amounts (e.g., $147.43, $52.18)
+         - Recent dates from 2025 (current year)
+         - "Welcome back" messages with account info
+      
+      2. **If you see current bill + amount + 2025 date:**
+         → This page HAS billing data → extract immediately
+      
+      3. **If you see login forms but NO billing data:**
+         → This is a login page → need to sign in
+      
+      4. **If unclear:**
+         → Look for navigation to billing sections
+      
+      **Just tell me:**
+      - Do you see current bill information with dollar amounts?
+      - Do you see recent dates (2025)?
+      - If yes to both: "This page has current billing data"
+      - If no: "This page needs login" or "This page needs navigation"
+
+  signin_detection:
+    version: "2.2"
+    description: "Specific sign-in button detection for opening login forms"
+    prompt: |
+      You are analyzing a webpage to detect if sign-in/login is needed.
+      
+      Look for these indicators:
+      1. "Sign In", "Login", "Member Login" buttons or links
+      2. Username/email and password input fields
+      3. Authentication forms
+      4. "Sign In / Register" or similar options
+      5. Login-related text or prompts
+      
+      Based on the screenshot and HTML, determine:
+      - Is this a login page requiring authentication?
+      - Are there visible sign-in elements that need to be clicked?
+      - What specific elements should be used for login?
+      
+      Provide clear, actionable recommendations.
+
+  find_selectors:
+    version: "1.0"
+    description: "Find login form element selectors"
+    prompt: |
+      You are helping to find form elements on a webpage for automation.
+      
+      Look at the provided screenshot and HTML content and identify:
+      
+      1. **USERNAME/EMAIL FIELD**: 
+         - Look for input fields for username, email, or account number
+         - Provide the best CSS selector (e.g., 'input[type="email"]', '#username', 'input[name="email"]')
+      
+      2. **PASSWORD FIELD**:
+         - Look for password input fields
+         - Provide the best CSS selector (e.g., 'input[type="password"]', '#password')
+      
+      3. **SUBMIT BUTTON**:
+         - Look for login, sign-in, or submit buttons
+         - Provide the best CSS selector (e.g., 'button[type="submit"]', 'input[type="submit"]', 'button:has-text("Login")')
+      
+      Format your response as:
+      Username: [selector]
+      Password: [selector]
+      Submit: [selector]
+      
+      Only provide selectors that you can clearly see in the HTML/screenshot.
+
+  find_billing_links:
+    version: "1.0"
+    description: "Find billing navigation links"
+    prompt: |
+      You are looking for navigation links to billing pages on a utility website.
+      
+      Analyze the screenshot and HTML content to find clickable elements that lead to:
+      
+      1. **BILLING PAGES**: Links to view bills, statements, or payment history
+      2. **ACCOUNT STATEMENTS**: Links to account summaries or transaction history  
+      3. **PAYMENT HISTORY**: Links to past payments or billing records
+      4. **BILL DETAILS**: Links to detailed bill information
+      
+      Common link text to look for:
+      - "Billing", "Bill History", "View Bills"
+      - "Account", "Account History", "Statements"
+      - "Payment History", "Transaction History"
+      - "Current Bill", "Recent Bills"
+      - "Account Summary", "Statement"
+      
+      For each link you find, provide:
+      - The clickable text or description
+      - The best CSS selector to click it
+      - Whether it's a link, button, or other element
+      
+      Format as:
+      Link: [description]
+      Selector: [CSS selector]
+      Type: [link/button/etc]
+      
+      Provide multiple options if available, prioritizing the most likely to contain billing data.
+
+  extract_billing_data:
+    version: "4.0"
+    description: "Extract current bill or statement details from ANY utility (water, electric, gas, internet) account page"
+    prompt: |
+      You are reading a utility account webpage or PDF-style statement shown in a browser.  Your goal is to pull **just the key billing facts** for the **most recent bill** that the customer can see on-screen.  Utilities may be water, electricity, gas, trash, internet, or a bundled service.  Layouts vary widely.
+
+      --------------------
+      🔎  WHAT TO LOOK FOR (in order of importance)
+      --------------------
+      1. Dollar amounts that represent money **owed or recently billed**.  Phrases-to-match include but are not limited to:
+         •  Current Bill, Current Charges, Amount Due, New Charges, This Month's Bill
+         •  Balance Due, Pay Now
+      2. A **due date** or **bill date / statement date** near that amount.  Common label words: Due, Pay By, Statement Date, Billed, Invoice Date.
+      3. **Billing period** or **usage period** (e.g. 05/01/24 – 05/31/24).
+      4. **Usage metrics** when available (kWh, Therms, Gallons, CCF, Mbps).  Capture the numeric value + unit + period if it's shown next to the bill.
+      5. **Last payment** details (amount & date) if visible.
+      6. **Account holder / customer name** and **account number** if they appear in the header area.
+
+      --------------------
+      📄  OUTPUT FORMAT  (one field per line)
+      --------------------
+      Current Bill Amount: $123.45
+      Bill / Statement Date: 2024-06-25  (or MM/DD/YYYY)
+      Due Date: 2024-07-20
+      Billing Period: 2024-05-01 – 2024-05-31
+      Usage: 972 kWh
+      Account Balance: $0.00
+      Last Payment: $120.00 on 2024-06-10
+      Customer Name: John Doe
+      Account Number: 123-456-78
+
+      •  If a field is truly not present, write "N/A".
+      •  Show **only one** "Current Bill Amount" – the most recent / highest priority.
+      •  Ignore marketing banners, autopay panels, charts without dollar amounts, footer links, etc.
+      •  Keep amounts exactly as displayed (include parentheses when negative, include currency symbol).  Preserve original date format if clear; otherwise normalise to YYYY-MM-DD.
+
+      --------------------
+      💡  TIPS
+      --------------------
+      •  Dollar amounts often appear with labels like "$0.00 CR", "($145.16)", "USD 87.23".  Capture the sign correctly.
+      •  Some sites separate "Current Balance" and "Total Due".  Favour **Total / Amount Due** for Current Bill Amount.
+      •  If multiple accounts are listed, choose the one marked **Primary / Active / Default** or simply the first in the list.
+      •  For prepaid or credit balance accounts, the bill amount may be $0.00 – still capture it.
+      •  If the page is clearly a login screen or dashboard without any bill, just answer:  
+        Current Bill Amount: N/A  (and leave other fields N/A)
+
+      Return ONLY the field lines, no extra commentary.
+
+  login_selectors:
+    version: "1.0"
+    description: "Return concise CSS selectors for username, password and submit elements on a login page"
+    prompt: |
+      You are given the raw or cleaned HTML of a utility-website login page.
+      Return **only** a JSON string (no markdown) with exactly these keys:
+      {
+        "username": "<CSS selector of username/email input>",
+        "password": "<CSS selector of password input>",
+        "submit"  : "<CSS selector of the button or input that submits the form>"
+      }
+      Requirements:
+      • The selectors must work with Playwright locator syntax (CSS, not XPath).
+      • Prefer short, robust selectors (id, name, placeholder, type) over deep DOM paths.
+      • The submit selector must be the element that actually fires authentication (often type="submit" or contains text like "Sign In", "Log In").
+      • If multiple candidates exist, pick the most specific and visible one.
+      • If any selector is genuinely missing, put the value "N/A".
+
+  website_elements_analysis:
+    version: "1.0"
+    description: "General website element detection"
+    prompt: |
+      Look at this website screenshot carefully and identify:
+
+      1. **Sign-in/Login elements**: Any buttons, links, or forms for logging in
+      2. **Navigation menu**: Header navigation, sidebar menus
+      3. **Main content area**: What's the primary content or purpose
+      4. **Interactive elements**: Buttons, links, forms, dropdowns
+      5. **Text content**: Any readable text, headings, labels
+
+      For each element you find, tell me:
+      - What it says (exact text)
+      - Where it's located (top, bottom, left, right, center)
+      - What type of element it is (button, link, text, etc.)
+
+      Be very specific and detailed.
+
+  signin_button_detection:
+    version: "2.0"
+    description: "Specific sign-in/login button detection with structured output"
+    prompt: |
+      Look at this website screenshot very carefully and find ANY sign-in, login, or authentication buttons/links.
+
+      Return your findings as a JSON array with this exact structure:
+
+      ```json
+      [
+        {
+          "element_type": "button|link|input|submit",
+          "text": "exact text you see",
+          "location": "top-left|top-right|center|bottom|near-form",
+          "coordinates": {
+            "x_percent": 0-100,
+            "y_percent": 0-100
+          },
+          "confidence": "high|medium|low",
+          "color": "blue|green|orange|red|gray|other",
+          "is_primary": true,
+          "near_username_field": true,
+          "css_hints": ["btn-primary", "submit", "login-btn"]
+        }
+      ]
+      ```
+
+      **Look for these sign-in patterns:**
+      - "Sign In", "Login", "Log In", "Sign in", "Enter", "Submit"
+      - Buttons near username/password fields
+      - Primary colored buttons (blue, green, orange)
+      - Submit buttons in login forms
+
+      **Element Types:**
+      - button: HTML button elements
+      - link: Clickable text links  
+      - input: Input submit buttons
+      - submit: Form submit elements
+
+      **Special Cases:**
+      - Utility websites often have prominent blue/green login buttons
+      - Sometimes buttons just say "Submit" or have arrow icons
+      - Look for the most prominent action button on login pages
+
+      **Coordinates:** Estimate position as percentages from top-left corner
+      - x_percent: 0 = far left, 100 = far right  
+      - y_percent: 0 = top, 100 = bottom
+
+      Return ONLY the JSON array, no other text. If no sign-in elements found, return: []
+
+  html_login_analysis:
+    version: "1.0"
+    description: "HTML-based login form analysis fallback"
+    prompt: |
+      Analyze this HTML page content and find ALL login form elements (username fields, password fields, submit buttons).
+
+      Return your findings as a JSON object with this exact structure:
+
+      ```json
+      {
+        "username_fields": [
+          {
+            "selector_hints": ["input[type='text']", "input[name='username']", "#username"],
+            "attributes": {"type": "text", "name": "username", "id": "loginUsername"},
+            "placeholder": "Username",
+            "confidence": "high|medium|low"
+          }
+        ],
+        "password_fields": [
+          {
+            "selector_hints": ["input[type='password']", "input[name='password']", "#password"],
+            "attributes": {"type": "password", "name": "password", "id": "loginPassword"},
+            "placeholder": "Password",
+            "confidence": "high|medium|low"
+          }
+        ],
+        "submit_buttons": [
+          {
+            "selector_hints": ["button[type='submit']", "input[type='submit']", "#loginBtn"],
+            "attributes": {"type": "submit", "class": "btn btn-primary", "id": "loginButton"},
+            "text": "Sign In",
+            "confidence": "high|medium|low"
+          }
+        ],
+        "form_action": "/login",
+        "form_method": "POST"
+      }
+      ```

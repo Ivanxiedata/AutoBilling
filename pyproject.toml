@@ -1,7 +1,7 @@
 [project]
 name = "autobilling"
-version = "0.1.0"
-description = "AI-powered utility bill scraping and analysis tool"
+version = "2.0.0"
+description = "AI-powered utility bill scraper - Optimized modular architecture"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -11,8 +11,28 @@ dependencies = [
     "ollama>=0.3.0",
     "pandas>=2.1.0",
     "tabulate>=0.9.0",
-    "python-dotenv>=1.0.0",
-    "lxml>=4.9.0",
     "webdriver-manager>=4.0.0",
-    "html5lib>=1.1"
+    "pillow>=11.3.0",
 ]
+
+[project.scripts]
+autobilling = "main:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*.py"]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
